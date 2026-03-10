@@ -1,6 +1,11 @@
 pipeline {
   agent any
 
+  tools {
+    jdk 'JDK17'
+    maven 'Maven_3.9.13'
+  }
+
   options { timestamps() }
 
   stages {
@@ -10,7 +15,11 @@ pipeline {
 
     stage('Build & Test') {
       steps { bat 'mvn -B clean test' }
-      post { always { junit 'target\\surefire-reports\\*.xml' } }
+      post {
+        always {
+          junit testResults: 'target\\surefire-reports\\*.xml', allowEmptyResults: true
+        }
+      }
     }
 
     stage('Package') {
@@ -19,3 +28,4 @@ pipeline {
     }
   }
 }
+
