@@ -14,15 +14,15 @@ pipeline {
       steps { checkout scm }
     }
 
-    stage('Build JAR') {
-      steps {
-        bat '''
-          mvn -v
-          mvn -U -DskipTests clean package
-          dir target
-        '''
-      }
-    }
+stage('Build JAR') {
+  steps {
+    bat '''
+      mvn -v
+      mvn -U -DskipTests clean package
+      dir target
+    '''
+  }
+}
 
     stage('Build Docker Image') {
       steps {
