@@ -2,7 +2,7 @@ pipeline {
   agent any
 
   tools {
-    maven 'M3'   // <-- change 'M3' to your Maven installation name in Jenkins
+    maven 'Maven_3.9.13'
   }
 
   environment {
@@ -14,7 +14,7 @@ pipeline {
       steps { checkout scm }
     }
 
-    stage('Build JAR (Maven)') {
+    stage('Build JAR') {
       steps {
         bat '''
           mvn -v
@@ -24,10 +24,10 @@ pipeline {
       }
     }
 
-    stage('Build Docker image') {
+    stage('Build Docker Image') {
       steps {
         script {
-          def img = "${env.APP_IMAGE}:${env.BUILD_NUMBER}"   // fixes your 'def' warning
+          def img = "${env.APP_IMAGE}:${env.BUILD_NUMBER}"
           bat """
             docker version
             docker build -t ${img} .
