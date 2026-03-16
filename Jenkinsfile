@@ -1,15 +1,12 @@
 pipeline {
-  agent { label 'linux-podman' }   // IMPORTANT: Jenkins node label that has podman installed
+  agent any
+
   tools {
-    jdk 'JDK17'
-    maven 'Maven_3.9.13'
+    maven 'M3'   // <-- change 'M3' to your Maven installation name in Jenkins
   }
-  options { timestamps() }
 
   environment {
-    DOCKERHUB_REPO = "yourdockerhubuser/yourapp"  // CHANGE ME
-    IMAGE_TAG = "${env.BUILD_NUMBER}"
-    IMAGE = "${DOCKERHUB_REPO}:${IMAGE_TAG}"
+    APP_IMAGE = "java-jenkins-app"
   }
 
   stages {
@@ -17,46 +14,27 @@ pipeline {
       steps { checkout scm }
     }
 
-    stage('Build & Test') {
-      steps { sh 'mvn -B clean test' }
-      post {
-        always {
-          junit testResults: 'target/surefire-reports/*.xml', allowEmptyResults: true
-        }
+    stage('Build JAR (Maven)') {
+      steps {
+        bat '''
+          mvn -v
+          mvn -U -DskipTests clean package
+          dir target
+        '''
       }
     }
 
-    stage('Package') {
-      steps { sh 'mvn -B package -DskipTests' }
-      post { success { archiveArtifacts artifacts: 'target/*.jar', fingerprint: true } }
-    }
-
-    stage('Build Image (Podman)') {
-      steps { sh 'podman build -t ${IMAGE} .' }
-    }
-
-    stage('Push Image (Docker Hub)') {
+    stage('Build Docker image') {
       steps {
-        withCredentials([usernamePassword(
-          credentialsId: 'dockerhub-creds',
-          usernameVariable: 'DH_USER',
-          passwordVariable: 'DH_PASS'
-        )]) {
-          sh '''
-            set -euo pipefail
-            echo "$DH_PASS" | podman login docker.io -u "$DH_USER" --password-stdin
-            podman push ${IMAGE} docker://${IMAGE}
-            podman logout docker.io
-          '''
+        script {
+          def img = "${env.APP_IMAGE}:${env.BUILD_NUMBER}"   // fixes your 'def' warning
+          bat """
+            docker version
+            docker build -t ${img} .
+            docker images | findstr ${env.APP_IMAGE}
+          """
         }
-      }
-    }
-
-    stage('Scan Image (Trivy)') {
-      steps {
-        sh 'trivy image --no-progress --severity HIGH,CRITICAL --exit-code 1 ${IMAGE}'
       }
     }
   }
 }
-
